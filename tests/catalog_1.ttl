@@ -1,0 +1,33 @@
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.com/catalogs/1> a dcat:Catalog ;
+    dct:publisher <https://example.com/publishers/1> ;
+    dct:title "Dataservicekatalog for Eksempel AS"@nb ;
+    dcat:service <http://example.com/dataservices/1>,
+        <http://example.com/dataservices/2>
+    .
+
+<http://example.com/dataservices/1> a dcat:DataService ;
+    dct:description "Exposes a model-catalog"@nb ;
+    dct:title "Model-catalog of Digdir"@nb ;
+    dcat:contactPoint <http://example.com/contactpoint/2> ;
+    dcat:endpointDescription <http://example.com/description/model-catalog.yaml>
+    .
+
+<http://example.com/dataservices/2> a dcat:DataService ;
+    dct:description "Exposes a collection of dataservice-catalogs"@nb ;
+    dct:title "Dataservice-catalog of Digdir"@nb ;
+    dcat:contactPoint <http://example.com/contactpoint/2> ;
+    dcat:endpointDescription <http://example.com/description/dataservice-catalog.yaml>
+    .
+
+<http://example.com/contactpoint/2> a vcard:Organization ;
+    vcard:hasOrganizationName "Digitaliseringsdirektoratet"@nb ;
+    vcard:hasURL <https://digdir.no> ;
+    .
