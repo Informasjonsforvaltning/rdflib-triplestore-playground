@@ -1,0 +1,4 @@
+ - [ ] Figure out how to persist new graph to fuseki by using either
+  - store API, or
+  - SPARQLWrapper,
+  - something else
