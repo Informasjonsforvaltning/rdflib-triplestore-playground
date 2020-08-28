@@ -8,10 +8,8 @@ from rdflib import Graph, URIRef
 from rdflib.compare import graph_diff, isomorphic
 
 load_dotenv()
-HOST = env.get("HOST", "fdk-fuseki-service")
-PORT = env.get("PORT", "3030")
 DATASET = env.get("DATASET_1", "ds")
-PASSWORD = env.get("PASSWORD", "passw123")
+PASSWORD = env.get("PASSWORD")
 
 
 def test_insert_named_graph_with_SPARQLWrapper(http_service: Any) -> None:

@@ -1,4 +1,5 @@
 """Conftest module."""
+import os
 from os import environ as env
 import time
 from typing import Any
@@ -33,5 +34,10 @@ def http_service(docker_ip: Any, docker_services: Any) -> Any:
     docker_services.wait_until_responsive(
         timeout=30.0, pause=0.1, check=lambda: is_responsive(url)
     )
-    time.sleep(1)  # to ensure the endpoints are up and running
+    time.sleep(3)  # to ensure the endpoints are up and running
     return url
+
+
+@pytest.fixture(scope="session")
+def docker_compose_file(pytestconfig):
+    return os.path.join(str(pytestconfig.rootdir), "./", "docker-compose.yml")
