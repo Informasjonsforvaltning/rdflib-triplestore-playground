@@ -26,6 +26,13 @@ To run linters, checkers and tests:
 % nox
 ```
 
+### Play with the triplestore
+```
+% docker-compose up   # in a dedicated terminal window
+% poetry shell
+% python
+```
+
 ## What we are playing with
 
 We try to something analogous to the following in rdflib:

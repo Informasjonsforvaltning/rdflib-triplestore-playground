@@ -4,15 +4,27 @@ from typing import Any
 
 from dotenv import load_dotenv
 import pytest
-from rdflib import Graph, URIRef
+from rdflib import Graph, Literal, URIRef
 from rdflib.compare import graph_diff, isomorphic
 
 load_dotenv()
 DATASET = env.get("DATASET_1", "ds")
 PASSWORD = env.get("PASSWORD")
 
+PREFIX = """
+                PREFIX dct:   <http://purl.org/dc/terms/>
+                PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX owl:   <http://www.w3.org/2002/07/owl#>
+                PREFIX xml:   <http://www.w3.org/XML/1998/namespace>
+                PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
+                PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+                PREFIX dcat:  <http://www.w3.org/ns/dcat#>
+                PREFIX dc: <http://purl.org/dc/elements/1.1/>
+        """
 
-def test_insert_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
+
+def test_insert_triples_into_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
     """Should return some status and the graph is persisted."""
     from SPARQLWrapper import SPARQLWrapper, POST, TURTLE
 
@@ -23,23 +35,16 @@ def test_insert_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
     sparql.setCredentials("admin", PASSWORD)
     sparql.setMethod(POST)
 
-    querystring = """
-            PREFIX dct:   <http://purl.org/dc/terms/>
-            PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX owl:   <http://www.w3.org/2002/07/owl#>
-            PREFIX xml:   <http://www.w3.org/XML/1998/namespace>
-            PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
-            PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-            PREFIX dcat:  <http://www.w3.org/ns/dcat#>
-            PREFIX dc: <http://purl.org/dc/elements/1.1/>
+    querystring = (
+        PREFIX
+        + """
             INSERT DATA
-            { GRAPH <http://example.com/catalogs/1>
+            { GRAPH <http://example.com/publisher/2>
               {
-                <http://example.com/catalogs/1>
+                <http://example.com/publisher/2/catalogs/1>
                         a              dcat:Catalog ;
-                        dct:publisher  <https://example.com/publishers/1> ;
-                        dct:title      "Dataservicekatalog for Eksempel AS"@nb ;
+                        dct:publisher  <https://example.com/publishers/2> ;
+                        dct:title      "Dataservicekatalog for Anna Eksempel AS"@nb ;
                         dcat:service   <http://example.com/dataservices/2> ,
                                        <http://example.com/dataservices/1>
                         .
@@ -66,6 +71,7 @@ def test_insert_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
               }
             }
         """
+    )
 
     sparql.setQuery(querystring)
     results = sparql.query()
@@ -75,7 +81,7 @@ def test_insert_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
     querystring = """
         CONSTRUCT { ?s ?p ?o }
         WHERE {
-            GRAPH <http://example.com/catalogs/1> {?s ?p ?o}
+            GRAPH <http://example.com/publisher/2> {?s ?p ?o}
         }
     """
     sparql = SPARQLWrapper(query_endpoint)
@@ -92,6 +98,73 @@ def test_insert_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
     assert len(g) == 18
 
 
+def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> None:
+    """Should return some status and the graph is persisted."""
+    from SPARQLWrapper import SPARQLWrapper, POST, TURTLE
+
+    g = "<http://example.com/publisher/1>"
+    g1 = Graph().parse("tests/catalog_1.ttl", format="turtle")
+
+    update_endpoint = f"{http_service}/{DATASET}/update"
+    print(update_endpoint)
+
+    sparql = SPARQLWrapper(update_endpoint)
+    sparql.setCredentials("admin", PASSWORD)
+    sparql.setMethod(POST)
+
+    for s, p, o in g1:
+        if isinstance(o, Literal):
+            querystring = (
+                PREFIX
+                + """
+                INSERT DATA {GRAPH %s {<%s> <%s> "%s"@%s}}
+                """
+                % (g, s, p, o, o.language,)
+            )
+        else:
+            querystring = (
+                PREFIX
+                + """
+                INSERT DATA {GRAPH %s {<%s> <%s> <%s>}}
+                """
+                % (g, s, p, o,)
+            )
+
+        print(querystring)
+        sparql.setQuery(querystring)
+        results = sparql.query()
+        assert 200 == results.response.status
+
+    query_endpoint = f"{http_service}/{DATASET}/query"
+    querystring = """
+        CONSTRUCT { ?s ?p ?o }
+        WHERE {
+            GRAPH %s {?s ?p ?o}
+        }
+    """ % (
+        g
+    )
+    sparql = SPARQLWrapper(query_endpoint)
+    sparql.setQuery(querystring)
+    sparql.setReturnFormat(TURTLE)
+    sparql.setOnlyConneg(True)
+    results = sparql.query()
+    assert 200 == results.response.status
+    assert "text/turtle; charset=utf-8" == results.response.headers["Content-Type"]
+
+    data = results.convert()
+    g2 = Graph()
+    g2.parse(data=data, format="turtle")
+
+    assert len(g1) == len(g2)
+
+    _isomorphic = isomorphic(g1, g2)
+    if not _isomorphic:
+        _dump_diff(g1, g2)
+        pass
+    assert _isomorphic
+
+
 def test_describe_query_with_SPARQLWrapper(http_service: Any) -> None:
     """Should return some status and the graph is persisted."""
     from SPARQLWrapper import SPARQLWrapper, TURTLE
@@ -99,7 +172,7 @@ def test_describe_query_with_SPARQLWrapper(http_service: Any) -> None:
     query_endpoint = f"{http_service}/{DATASET}/query"
     print(query_endpoint)
 
-    querystring = "DESCRIBE <http://example.com/catalogs/1>"
+    querystring = "DESCRIBE <http://example.com/publisher/1/catalogs/1>"
     sparql = SPARQLWrapper(query_endpoint)
 
     sparql.setQuery(querystring)
@@ -114,23 +187,21 @@ def test_describe_query_with_SPARQLWrapper(http_service: Any) -> None:
     data = results.convert()
     g1 = Graph()
     g1.parse(data=data, format="turtle")
-    src = """
-        @prefix dcat: <http://www.w3.org/ns/dcat#> .
-        @prefix dct: <http://purl.org/dc/terms/> .
-        @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-        @prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
-        @prefix xml: <http://www.w3.org/XML/1998/namespace> .
-        @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    src = (
+        PREFIX
+        + """
 
-        <http://example.com/catalogs/1> a dcat:Catalog ;
+        <http://example.com/publisher/1/catalogs/1> a dcat:Catalog ;
             dct:publisher <https://example.com/publishers/1> ;
             dct:title "Dataservicekatalog for Eksempel AS"@nb ;
             dcat:service <http://example.com/dataservices/1>,
                 <http://example.com/dataservices/2>
             .
     """
+    )
     g2 = Graph().parse(data=src, format="turtle")
+
+    assert len(g1) == len(g2)
 
     _isomorphic = isomorphic(g1, g2)
     if not _isomorphic:
@@ -149,7 +220,7 @@ def test_construct_query_with_SPARQLWrapper(http_service: Any) -> None:
     querystring = """
         CONSTRUCT { ?s ?p ?o }
         WHERE {
-         GRAPH <http://example.com/catalogs/1> {?s ?p ?o}
+         GRAPH <http://example.com/publisher/1> {?s ?p ?o}
         }
     """
     sparql = SPARQLWrapper(query_endpoint)
@@ -167,6 +238,8 @@ def test_construct_query_with_SPARQLWrapper(http_service: Any) -> None:
     g1 = Graph()
     g1.parse(data=data, format="turtle")
     g2 = Graph().parse("tests/catalog_1.ttl", format="turtle")
+
+    assert len(g1) == len(g2)
 
     _isomorphic = isomorphic(g1, g2)
     if not _isomorphic:

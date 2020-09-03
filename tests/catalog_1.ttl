@@ -6,7 +6,7 @@
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://example.com/catalogs/1> a dcat:Catalog ;
+<http://example.com/publisher/1/catalogs/1> a dcat:Catalog ;
     dct:publisher <https://example.com/publishers/1> ;
     dct:title "Dataservicekatalog for Eksempel AS"@nb ;
     dcat:service <http://example.com/dataservices/1>,
