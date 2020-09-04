@@ -128,7 +128,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
             )
         else:
             querystring = (
-                PREFIX
+                prefixes
                 + """
                 INSERT DATA {GRAPH %s {<%s> <%s> <%s>}}
                 """
@@ -271,6 +271,53 @@ def test_add_graph_with_SPARQLUpdateStore(http_service: Any) -> None:
 
     result = store.add_graph(g)
     assert result
+
+
+def test_construct_graph_of_all_catalogs_with_SPARQLWrapper(http_service: Any) -> None:
+    """Should return all the graphs."""
+    from SPARQLWrapper import SPARQLWrapper, TURTLE
+
+    query_endpoint = f"{http_service}/{DATASET}/query"
+    print(query_endpoint)
+
+    querystring = """
+        PREFIX dcat: <http://www.w3.org/ns/dcat#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        CONSTRUCT { ?s a dcat:Catalog .}
+        WHERE { GRAPH ?g { ?s a dcat:Catalog .} }
+    """
+    sparql = SPARQLWrapper(query_endpoint)
+
+    sparql.setQuery(querystring)
+
+    sparql.setReturnFormat(TURTLE)
+    sparql.setOnlyConneg(True)
+    results = sparql.query()
+
+    assert 200 == results.response.status
+    assert "text/turtle; charset=utf-8" == results.response.headers["Content-Type"]
+
+    data = results.convert()
+    g1 = Graph()
+    g1.parse(data=data, format="turtle")
+    src = (
+        PREFIX
+        + """
+        <http://example.com/publisher/1/catalogs/1>
+            a       dcat:Catalog .
+        <http://example.com/publisher/2/catalogs/1>
+            a       dcat:Catalog .
+        """
+    )
+    g2 = Graph().parse(data=src, format="turtle")
+
+    assert len(g1) == len(g2)
+
+    _isomorphic = isomorphic(g1, g2)
+    if not _isomorphic:
+        _dump_diff(g1, g2)
+        pass
+    assert _isomorphic
 
 
 # ---------------------------------------------------------------------- #
