@@ -102,7 +102,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
     """Should return some status and the graph is persisted."""
     from SPARQLWrapper import SPARQLWrapper, POST, TURTLE
 
-    g = "<http://example.com/publisher/1>"
+    identifier = "<http://example.com/publisher/1>"
     g1 = Graph().parse("tests/catalog_1.ttl", format="turtle")
 
     update_endpoint = f"{http_service}/{DATASET}/update"
@@ -112,14 +112,19 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
     sparql.setCredentials("admin", PASSWORD)
     sparql.setMethod(POST)
 
+    prefixes = ""
+    for ns in g1.namespaces():
+        prefixes += f"PREFIX {ns[0]}: <{ns[1]}>\n"
+    print(prefixes)
+
     for s, p, o in g1:
         if isinstance(o, Literal):
             querystring = (
-                PREFIX
+                prefixes
                 + """
                 INSERT DATA {GRAPH %s {<%s> <%s> "%s"@%s}}
                 """
-                % (g, s, p, o, o.language,)
+                % (identifier, s, p, o, o.language,)
             )
         else:
             querystring = (
@@ -127,7 +132,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
                 + """
                 INSERT DATA {GRAPH %s {<%s> <%s> <%s>}}
                 """
-                % (g, s, p, o,)
+                % (identifier, s, p, o,)
             )
 
         print(querystring)
@@ -142,7 +147,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
             GRAPH %s {?s ?p ?o}
         }
     """ % (
-        g
+        identifier
     )
     sparql = SPARQLWrapper(query_endpoint)
     sparql.setQuery(querystring)
