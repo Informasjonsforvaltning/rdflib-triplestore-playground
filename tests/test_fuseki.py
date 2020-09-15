@@ -102,7 +102,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
     """Should return some status and the graph is persisted."""
     from SPARQLWrapper import SPARQLWrapper, POST, TURTLE
 
-    identifier = "<http://example.com/publisher/1>"
+    identifier = "http://example.com/publisher/1"
     g1 = Graph().parse("tests/catalog_1.ttl", format="turtle")
 
     update_endpoint = f"{http_service}/{DATASET}/update"
@@ -122,7 +122,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
             querystring = (
                 prefixes
                 + """
-                INSERT DATA {GRAPH %s {<%s> <%s> "%s"@%s}}
+                INSERT DATA {GRAPH <%s> {<%s> <%s> "%s"@%s}}
                 """
                 % (identifier, s, p, o, o.language,)
             )
@@ -130,7 +130,7 @@ def test_insert_graph_into_named_graph_with_SPARQLWrapper(http_service: Any) -> 
             querystring = (
                 prefixes
                 + """
-                INSERT DATA {GRAPH %s {<%s> <%s> <%s>}}
+                INSERT DATA {GRAPH <%s> {<%s> <%s> <%s>}}
                 """
                 % (identifier, s, p, o,)
             )
